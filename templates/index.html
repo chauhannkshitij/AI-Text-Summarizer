@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Multi-Document Text Summarizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 text-gray-900 min-h-screen">
+    <div class="max-w-4xl mx-auto p-6">
+      <h1 class="text-4xl font-bold text-blue-600 mb-8 text-center">
+        Multi-Document Text Summarizer
+      </h1>
+
+      <!-- Input Form -->
+      <div class="bg-white p-6 rounded-lg shadow-lg">
+        <form
+          id="summarizeForm"
+          enctype="multipart/form-data"
+          class="space-y-4"
+        >
+          <div>
+            <label for="text" class="block text-sm font-medium mb-2"
+              >Enter Text:</label
+            >
+            <textarea
+              id="text"
+              name="text"
+              rows="6"
+              placeholder="Paste your text here..."
+              class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+            ></textarea>
+          </div>
+
+          <div>
+            <label for="files" class="block text-sm font-medium mb-2"
+              >Or Upload Files (.txt, .pdf, .docx):</label
+            >
+            <input
+              type="file"
+              id="files"
+              name="files"
+              multiple
+              accept=".txt,.pdf,.docx"
+              class="block w-full border border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+          </div>
+          <div>
+            <label for="summary_type" class="block text-sm font-medium mb-2"
+              >Summary Length:</label
+            >
+            <select
+              id="summary_type"
+              name="summary_type"
+              class="block w-full border border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            >
+              <option value="1-line">Single Line</option>
+              <option value="3-line">3 Lines</option>
+              <option value="5-line">5 Lines</option>
+              <option value="paragraph">Concise Paragraph</option>
+            </select>
+          </div>
+
+          <button
+            type="submit"
+            class="w-full bg-blue-600 text-white font-semibold py-2 rounded-lg hover:bg-blue-700 transition"
+          >
+            Generate Summary
+          </button>
+        </form>
+
+        <!-- Loader -->
+        <div id="loader" class="text-center mt-6 hidden">
+          <p class="text-gray-500 animate-pulse">
+            ⏳ Generating summary... please wait.
+          </p>
+        </div>
+
+        <!-- Results -->
+        <div id="result" class="mt-8 hidden">
+          <h2 class="text-2xl font-semibold text-blue-700 mb-4 text-center">
+            Summaries
+          </h2>
+          <div id="summaryContainer" class="space-y-4"></div>
+        </div>
+
+        <!-- Error -->
+        <div
+          id="error"
+          class="mt-4 text-red-600 hidden text-center font-medium"
+        ></div>
+      </div>
+    </div>
+<script>
+  const form = document.getElementById("summarizeForm");
+  const loader = document.getElementById("loader");
+  const resultBox = document.getElementById("result");
+  const summaryContainer = document.getElementById("summaryContainer");
+  const errorBox = document.getElementById("error");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const formData = new FormData(form);
+    loader.classList.remove("hidden");
+    resultBox.classList.add("hidden");
+    errorBox.classList.add("hidden");
+
+    try {
+      const response = await fetch("/summarize", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await response.json();
+
+      loader.classList.add("hidden");
+      summaryContainer.innerHTML = "";
+
+      if (data.summaries && Array.isArray(data.summaries)) {
+        data.summaries.forEach((item) => {
+          const card = document.createElement("div");
+          card.className =
+            "bg-gray-50 border border-gray-200 p-4 rounded-lg shadow-sm transition hover:shadow-md";
+
+          // ✅ Add summary + reduction percentage
+          card.innerHTML = `
+            <h3 class="text-lg font-semibold text-blue-700 mb-2">${item.name}</h3>
+            <p class="text-gray-700 whitespace-pre-wrap mb-2">${item.summary}</p>
+            <p class="text-sm font-medium text-green-600">
+              🔻 Reduced by ${item.reduction}% 
+            </p>
+          `;
+          summaryContainer.appendChild(card);
+        });
+
+        resultBox.classList.remove("hidden");
+      } else {
+        errorBox.textContent = "No summaries generated.";
+        errorBox.classList.remove("hidden");
+      }
+    } catch (err) {
+      loader.classList.add("hidden");
+      errorBox.textContent = "Server error: " + err.message;
+      errorBox.classList.remove("hidden");
+    }
+  });
+</script>
+  </body>
+</html>
